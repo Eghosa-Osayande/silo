@@ -27,8 +27,3 @@ coverage/
 
 .dart_tool/
 dev/
-
-# FVM Version Cache
-.fvm/
-.vscode/
-.fvmrc
