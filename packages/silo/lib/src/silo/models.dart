@@ -1,7 +1,5 @@
 
 
-abstract mixin class SiloModel<T> {
-  Type get instanceType => T;
-
+mixin SiloModel {
   dynamic toJson();
 }
