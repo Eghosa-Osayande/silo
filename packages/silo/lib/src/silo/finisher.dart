@@ -1,15 +1,15 @@
-import '../sql/clauses/clause.dart';
-import '../sql/clauses/delete.dart';
-import '../sql/clauses/from.dart';
-import '../sql/clauses/insert.dart';
-import '../sql/clauses/on_conflict.dart';
-import '../sql/clauses/select.dart';
-import '../sql/clauses/set.dart';
-import '../sql/clauses/values.dart';
-import '../sql/clauses/where.dart';
-import '../sql/expression/expression.dart';
-import '../sql/expression/quoted.dart';
-import '../utils/utils.dart';
+import 'package:silo/src/sql/clauses/clause.dart';
+import 'package:silo/src/sql/clauses/delete.dart';
+import 'package:silo/src/sql/clauses/from.dart';
+import 'package:silo/src/sql/clauses/insert.dart';
+import 'package:silo/src/sql/clauses/on_conflict.dart';
+import 'package:silo/src/sql/clauses/select.dart';
+import 'package:silo/src/sql/clauses/set.dart';
+import 'package:silo/src/sql/clauses/values.dart';
+import 'package:silo/src/sql/clauses/where.dart';
+import 'package:silo/src/sql/expression/expression.dart';
+import 'package:silo/src/sql/expression/quoted.dart';
+import 'package:silo/src/utils/utils.dart';
 
 import 'silo.dart';
 
@@ -72,7 +72,7 @@ mixin SiloFinisher<S extends Silo<O>, O> {
     if (!hasTable) {
       await tx.createTypeTable<O>();
     }
-    
+
     _createdTables[O] = true;
   }
 
@@ -172,8 +172,10 @@ mixin SiloFinisher<S extends Silo<O>, O> {
           [Quoted("key"), key],
         ),
         Expr(
-          "AND (`expired_at` IS NULL OR `expired_at` > ?)",
+          "AND (? IS NULL OR ? > ?)",
           [
+            Quoted('expired_at'),
+            Quoted('expired_at'),
             DateTime.now().toUtc().toIso8601String(),
           ],
         ),
