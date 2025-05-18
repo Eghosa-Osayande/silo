@@ -55,17 +55,11 @@ mixin SiloFinisher<S extends Silo<O>, O> {
 
   static final _createdTables = <Type, bool>{};
 
-  String _cleanString(String input) {
-    return input.replaceAll(RegExp(r'[^a-zA-Z0-9]'), '_');
-  }
+  String get _tableName => _silo.db.typeToTableName(O);
 
-  String _typeToTableName(Type t) {
-    return "_silo_${_cleanString(t.toString()).toLowerCase()}";
-  }
+  Expression get tableExpr => Quoted(_tableName);
 
-  Expression get tableExpr => Quoted(_typeToTableName(O));
-
-  Future<void> _createTable() async {
+  Future<void> _createTypeTable() async {
     final hasCreatedTable = _createdTables[O];
 
     if (hasCreatedTable == true) {
@@ -73,37 +67,18 @@ mixin SiloFinisher<S extends Silo<O>, O> {
     }
 
     final tx = _silo.db;
-    final b = ExprBuilder(tx);
-
-    b.append(
-      """
-CREATE TABLE IF NOT EXISTS ? (
-  ? TEXT NOT NULL,
-  ? TEXT,
-  ? DATETIME NOT NULL,
-  ? DATETIME NOT NULL,
-  ? DATETIME,
-  PRIMARY KEY (?)
-); 
-    """,
-      [
-        tableExpr,
-        Quoted("key"),
-        Quoted("value"),
-        Quoted("created_at"),
-        Quoted("updated_at"),
-        Quoted("expired_at"),
-        Quoted("key"),
-      ],
-    );
-
-    await tx.exec(b.sql, b.args);
+    final hasTable=await tx.hasTable(_tableName);
+    
+    if (!hasTable) {
+      await tx.createTypeTable<O>();
+    }
+    
     _createdTables[O] = true;
   }
 
   Future<void> put(String key, O value, {DateTime? expireAt}) async {
     final obj = encodeObj(value);
-    await _createTable();
+    await _createTypeTable();
 
     final statement = _silo.toStatement();
 
@@ -163,7 +138,7 @@ CREATE TABLE IF NOT EXISTS ? (
   }
 
   Future<void> remove(String key) async {
-    await _createTable();
+    await _createTypeTable();
     final statement = _silo.toStatement();
 
     statement.addClauses([
@@ -184,7 +159,7 @@ CREATE TABLE IF NOT EXISTS ? (
   }
 
   Future<O?> get(String key) async {
-    await _createTable();
+    await _createTypeTable();
     final db = _silo.db;
     var statement = Silo<O>().toStatement();
 
@@ -218,7 +193,7 @@ CREATE TABLE IF NOT EXISTS ? (
   }
 
   Future<List<SiloRow<O>>> find() async {
-    await _createTable();
+    await _createTypeTable();
     var q = _silo.toStatement().buildClauses(_silo.db, kQueryClauses);
 
     final results = await _silo.db.query(q.sql, q.args);
@@ -233,7 +208,7 @@ CREATE TABLE IF NOT EXISTS ? (
   }
 
   Future<SiloRow<O>?> first() async {
-    await _createTable();
+    await _createTypeTable();
     var q = _silo.limit(1).toStatement().buildClauses(_silo.db, kQueryClauses);
 
     final results = await _silo.db.query(q.sql, q.args);
