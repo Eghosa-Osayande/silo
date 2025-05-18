@@ -2,12 +2,14 @@ import '../interfaces/connection.dart';
 import '../interfaces/database.dart';
 import 'package:sqlite3/sqlite3.dart';
 
-mixin Sqlite3Connection on DB implements Connection {
-  Database get db;
+import 'database.dart';
+
+mixin Sqlite3Connection<S extends Sqlite3DB> implements Connection {
+  Database get _db => (this as S).db;
 
   @override
   Future<void> exec(String sql, [List<Object?> arguments = const []]) async {
-    return db.execute(sql, arguments);
+    return _db.execute(sql, arguments);
   }
 
   @override
@@ -15,7 +17,7 @@ mixin Sqlite3Connection on DB implements Connection {
     String sql, [
     List<Object?> arguments = const [],
   ]) async {
-    final resultSet = db.select(sql, arguments);
+    final resultSet = _db.select(sql, arguments);
 
     final result = <Map<String, Object?>>[];
     for (final Row row in resultSet) {
@@ -29,17 +31,17 @@ mixin Sqlite3Connection on DB implements Connection {
     Future<T> Function(DB tx) action,
   ) async {
     bool notTx = false;
-    if (db.autocommit) {
-      db.execute('BEGIN TRANSACTION');
+    if (_db.autocommit) {
+      _db.execute('BEGIN TRANSACTION');
       notTx = true;
     }
 
     try {
-      final result = await action(this);
-      if (notTx) db.execute('COMMIT');
+      final result = await action(this as S);
+      if (notTx) _db.execute('COMMIT');
       return result;
     } catch (e) {
-      if (notTx) db.execute('ROLLBACK');
+      if (notTx) _db.execute('ROLLBACK');
       rethrow;
     }
   }

@@ -1,21 +1,22 @@
-import 'config.dart';
-import 'conn.dart';
-import 'dialector.dart';
-import '../interfaces/config.dart';
-import '../interfaces/database.dart';
+import 'package:silo/src/drivers/interfaces/database.dart';
+import 'package:silo/src/drivers/sqlite/dialector.dart';
+import 'package:silo/src/drivers/sqlite/migrator.dart';
 import 'package:sqlite3/sqlite3.dart';
 
-class Sqlite3DB extends DB with SqliteDialector, Sqlite3Connection {
-  @override
+import 'conn.dart';
+
+class Sqlite3DB extends DB
+    with
+        SqliteDialector,
+        Sqlite3Connection<Sqlite3DB>,
+        SqliteMigrator<Sqlite3DB> {
+  //
   final Database db;
 
-  @override
-  final Config config = Sqlite3Config();
+  Sqlite3DB(this.db);
 
-  Sqlite3DB._(this.db);
-
-  static Future<Sqlite3DB> create(String path) async {
+  factory Sqlite3DB.fromPath(String path) {
     final db = sqlite3.open(path);
-    return Sqlite3DB._(db);
+    return Sqlite3DB(db);
   }
 }

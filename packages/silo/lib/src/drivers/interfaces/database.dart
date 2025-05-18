@@ -1,8 +1,7 @@
 import 'connection.dart';
 import 'dialector.dart';
+import 'migrator.dart';
 
-import 'config.dart';
+abstract mixin class DB implements Connection, Dialector, Migrator {
 
-abstract class DB implements Dialector, Connection {
-  Config get config;
 }
