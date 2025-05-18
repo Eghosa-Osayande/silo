@@ -16,8 +16,8 @@ mixin class SqliteMigrator<S extends DB> implements Migrator {
   }
 
   @override
-  Future<void> createTypeTable<T>([String? name]) async {
-    final tableExpr = Quoted(typeToTableName(T));
+  Future<void> createTypeTable(String name) async {
+    final tableExpr = Quoted(name);
 
     final b = ExprBuilder(_tx);
 
@@ -47,8 +47,8 @@ CREATE TABLE IF NOT EXISTS ? (
   }
 
   @override
-  Future<bool> hasTable<T>([String? name]) async {
-    final tableName = name ?? typeToTableName(T);
+  Future<bool> hasTable(String name) async {
+    final tableName = name;
     final b = Expr(
       "SELECT count(*) as c FROM sqlite_master WHERE type='table' AND name=?",
       [tableName],

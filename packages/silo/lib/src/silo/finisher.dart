@@ -1,3 +1,5 @@
+import 'package:silo/src/drivers/interfaces/database.dart';
+import 'package:silo/src/silo/registry.dart';
 import 'package:silo/src/sql/clauses/clause.dart';
 import 'package:silo/src/sql/clauses/delete.dart';
 import 'package:silo/src/sql/clauses/from.dart';
@@ -53,27 +55,34 @@ extension FutureSiloRowsX<T> on Future<SiloRow<T>?> {
 mixin SiloFinisher<S extends Silo<O>, O> {
   S get _silo => this as S;
 
-  static final _createdTables = <Type, bool>{};
+  DB get _tx {
+    if (_silo.db == null) {
+      throw Exception("db called on a Silo without a DB");
+    }
+    return _silo.db!;
+  }
 
-  String get _tableName => _silo.db.typeToTableName(O);
+  static final _createdTables = <String, bool>{};
+
+  String get _tableName => _silo.name ?? _tx.typeToTableName(O);
 
   Expression get tableExpr => Quoted(_tableName);
 
   Future<void> _createTypeTable() async {
-    final hasCreatedTable = _createdTables[O];
+    final hasCreatedTable = _createdTables[_tableName];
 
     if (hasCreatedTable == true) {
       return;
     }
 
-    final tx = _silo.db;
-    final hasTable=await tx.hasTable(_tableName);
-    
+    final tx = _tx;
+    final hasTable = await tx.hasTable(_tableName);
+
     if (!hasTable) {
-      await tx.createTypeTable<O>();
+      await tx.createTypeTable(_tableName);
     }
 
-    _createdTables[O] = true;
+    _createdTables[_tableName] = true;
   }
 
   Future<void> put(String key, O value, {DateTime? expireAt}) async {
@@ -129,12 +138,11 @@ mixin SiloFinisher<S extends Silo<O>, O> {
         ),
       ],
     );
-    final tx = _silo.db;
+    final tx = _tx;
 
     var q = statement.buildClauses(tx, kCreateClauses);
 
     await tx.exec(q.sql, q.args);
-    _silo.triggerAfterPut(key, value, q);
   }
 
   Future<void> remove(String key) async {
@@ -151,17 +159,16 @@ mixin SiloFinisher<S extends Silo<O>, O> {
         )
       ])
     ]);
-    final tx = _silo.db;
+    final tx = _tx;
     var q = statement.buildClauses(tx, kDeleteClauses);
 
     await tx.exec(q.sql, q.args);
-    _silo.triggerAfterRemove(key, q);
   }
 
   Future<O?> get(String key) async {
     await _createTypeTable();
-    final db = _silo.db;
-    var statement = Silo<O>().toStatement();
+    final db = _tx;
+    var statement = _silo.toStatement();
 
     statement.addClauses([
       Select([Expr("*")], []),
@@ -184,36 +191,33 @@ mixin SiloFinisher<S extends Silo<O>, O> {
 
     final q = statement.buildClauses(db, kQueryClauses);
 
-    final results = await _silo.db.query(q.sql, q.args);
+    final results = await _tx.query(q.sql, q.args);
 
     final rows = results.map((e) {
       return _toSiloRow(e);
     }).toList();
 
-    _silo.triggerAfterFind(key, q, rows);
     return rows.firstOrNull?.value;
   }
 
   Future<List<SiloRow<O>>> find() async {
     await _createTypeTable();
-    var q = _silo.toStatement().buildClauses(_silo.db, kQueryClauses);
+    var q = _silo.toStatement().buildClauses(_tx, kQueryClauses);
 
-    final results = await _silo.db.query(q.sql, q.args);
+    final results = await _tx.query(q.sql, q.args);
 
     final rows = results.map((e) {
       return _toSiloRow(e);
     }).toList();
-
-    _silo.triggerAfterFind(null, q, rows);
 
     return rows;
   }
 
   Future<SiloRow<O>?> first() async {
     await _createTypeTable();
-    var q = _silo.limit(1).toStatement().buildClauses(_silo.db, kQueryClauses);
+    var q = _silo.limit(1).toStatement().buildClauses(_tx, kQueryClauses);
 
-    final results = await _silo.db.query(q.sql, q.args);
+    final results = await _tx.query(q.sql, q.args);
 
     if (results.firstOrNull == null) {
       return null;
@@ -221,8 +225,6 @@ mixin SiloFinisher<S extends Silo<O>, O> {
     final rows = results.map((e) {
       return _toSiloRow(e);
     }).toList();
-
-    _silo.triggerAfterFind(null, q, rows);
 
     return rows.first;
   }
@@ -232,7 +234,7 @@ mixin SiloFinisher<S extends Silo<O>, O> {
     O value;
 
     try {
-      final fn = _silo.siloFor<O>();
+      final fn = SiloFactory.factoryFor<O>();
       value = fn(obj);
     } catch (e) {
       value = obj as O;

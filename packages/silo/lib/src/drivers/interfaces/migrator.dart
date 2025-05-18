@@ -1,7 +1,7 @@
 abstract class Migrator {
-  Future<void> createTypeTable<T>([String? name]);
+  Future<void> createTypeTable(String name);
 
-  Future<bool> hasTable<T>([String? name]);
+  Future<bool> hasTable(String name);
 
   String typeToTableName(Type t);
 }

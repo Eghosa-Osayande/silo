@@ -1,17 +1,15 @@
 import 'models.dart';
 
-import 'silo.dart';
-
-mixin SiloRegistry<S extends Silo> {
+class SiloFactory {
   static final _factories = <Type, dynamic Function(dynamic)>{};
 
-  void registerSilo<T extends SiloModel, I>(T Function(I) factory) {
+  static void register<T extends SiloModel, I>(T Function(I) factory) {
     _factories[T] = (input) => factory(input as I);
   }
 
-  T Function(dynamic) siloFor<T>([T? obj]) {
+  static T Function(dynamic) factoryFor<T>() {
     var type = T;
-   
+
     final fn = _factories[type];
 
     if (fn == null) {
