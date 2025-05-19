@@ -62,4 +62,9 @@ class SqliteDialector implements Dialector {
   writeVar(ExprBuilder builder) {
     builder.writeString("?");
   }
+
+  @override
+  bool supportsOrReplace() {
+    return true;
+  }
 }

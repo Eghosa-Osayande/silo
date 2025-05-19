@@ -95,50 +95,48 @@ mixin SiloFinisher<S extends Silo<O>, O> {
     final statement = _silo.toStatement();
 
     final updateValues = <String, dynamic>{
-      "key": key,
       "value": obj,
       "updated_at": DateTime.now().toUtc().toIso8601String(),
       "expired_at": expireAt?.toUtc().toIso8601String(),
     };
 
+    final createValues = <String, dynamic>{
+      "key": key,
+      "created_at": DateTime.now().toUtc().toIso8601String(),
+      ...updateValues,
+    };
+
     statement.addClauses(
       [
-        Insert(tableExpr),
+        Insert(tableExpr, orReplace: _tx.dialector.supportsOrReplace()),
         Values(
-          [
-            Quoted("created_at"),
-            ...updateValues.keys.map(
-              (e) => Quoted(e),
-            )
-          ],
-          [
-            DateTime.now().toUtc().toIso8601String(),
-            ...updateValues.values,
-          ],
+          createValues.keys.map((e) => Quoted(e)),
+          createValues.values,
         ),
-        OnConflict(
-          [
-            Quoted("key"),
-          ],
-          doUpdate: SetClause(
+        if (!_tx.dialector.supportsOrReplace())
+          OnConflict(
             [
-              ...updateValues.keys.map(
-                (e) => Expr(
-                  "? = COALESCE(?.?, ?.?)",
-                  [
-                    Quoted(e),
-                    Quoted("excluded"),
-                    Quoted(e),
-                    tableExpr,
-                    Quoted(e),
-                  ],
-                ),
-              ),
+              Quoted("key"),
             ],
-            isExcluded: true,
-            table: tableExpr,
+            doUpdate: SetClause(
+              [
+                ...updateValues.keys.map(
+                  (e) => Expr(
+                    "? = COALESCE(?.?, ?.?)",
+                    [
+                      Quoted(e),
+                      Quoted("excluded"),
+                      Quoted(e),
+                      tableExpr,
+                      Quoted(e),
+                    ],
+                  ),
+                ),
+              ],
+              isExcluded: true,
+              table: tableExpr,
+            ),
           ),
-        ),
       ],
     );
     final tx = _tx;
@@ -233,6 +231,7 @@ mixin SiloFinisher<S extends Silo<O>, O> {
   }
 
   SiloRow<O> _toSiloRow(Map<String, Object?> e) {
+    e = Map.from(e);
     final obj = decodeObj(e["value"].toString());
     O value;
 
