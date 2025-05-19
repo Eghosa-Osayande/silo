@@ -6,12 +6,13 @@ export 'src/silo/silo.dart';
 export 'src/silo/query_builder.dart' show Logic;
 export 'src/silo/models.dart' show SiloModel;
 export 'src/silo/finisher.dart'
-    show SiloRow, FutureListSiloRowsX, FutureSiloRowsX, ListSiloRowsX;
+    show SiloRow, SiloRows;
 
 export 'src/drivers/interfaces/connection.dart';
 export 'src/drivers/interfaces/database.dart';
 export 'src/drivers/interfaces/dialector.dart';
-
-export 'src/drivers/sqlite3/database.dart';
+export 'src/drivers/interfaces/migrator.dart';
+export 'src/drivers/sqlite/dialector.dart';
+export 'src/drivers/sqlite/migrator.dart';
 
 export 'src/sql/expression/expression.dart' show ExprBuilder;
