@@ -1,5 +1,5 @@
 name: silo_sqflite
-description: Sqflit3 driver for Silo ORM
+description: Sqflite driver for Silo ORM
 version: 0.0.1-dev.1
 repository: https://github.com/Eghosa-Osayande/silo
 issue_tracker: https://github.com/Eghosa-Osayande/silo/issues
