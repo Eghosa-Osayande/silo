@@ -349,7 +349,6 @@ mixin SiloQueryBuilder<T extends Silo> {
 
   T raw(String query, [List<dynamic>? args]) {
     String output = _transformColumns(query);
-    print(output);
 
     _where("AND", output, args);
 
