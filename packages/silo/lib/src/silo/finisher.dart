@@ -230,6 +230,14 @@ mixin SiloFinisher<S extends Silo<O>, O> {
     return rows.first;
   }
 
+  Future<T> transaction<T>(T Function(Silo<O> silo) action) async {
+    return _tx.transaction(
+      (db) async {
+        return action(Silo(db));
+      },
+    );
+  }
+
   SiloRow<O> _toSiloRow(Map<String, Object?> e) {
     e = Map.from(e);
     final obj = decodeObj(e["value"].toString());
