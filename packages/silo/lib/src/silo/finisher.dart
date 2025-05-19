@@ -1,3 +1,5 @@
+import 'dart:collection';
+
 import 'package:silo/src/drivers/interfaces/database.dart';
 import 'package:silo/src/silo/registry.dart';
 import 'package:silo/src/sql/clauses/clause.dart';
@@ -28,28 +30,32 @@ class SiloRow<T> {
   String toString() => 'SiloRow(key: $key, value: $value)';
 }
 
-extension ListSiloRowsX<T> on List<SiloRow<T>> {
-  List<T> get values => this
+class SiloRows<T> with ListMixin<SiloRow<T>> {
+  final List<SiloRow<T>> rows;
+  SiloRows(this.rows);
+  @override
+  int get length => rows.length;
+
+  @override
+  set length(int newLength) {
+    rows.length = newLength;
+  }
+
+  @override
+  SiloRow<T> operator [](int index) {
+    return rows[index];
+  }
+
+  @override
+  void operator []=(int index, SiloRow<T> value) {
+    rows[index] = value;
+  }
+
+  List<T> get values => rows
       .map(
         (e) => e.value,
       )
       .toList();
-}
-
-extension FutureListSiloRowsX<T> on Future<List<SiloRow<T>>> {
-  Future<List<T>> get values => this.then(
-        (f) => f
-            .map(
-              (e) => e.value,
-            )
-            .toList(),
-      );
-}
-
-extension FutureSiloRowsX<T> on Future<SiloRow<T>?> {
-  Future<T?> get value => this.then(
-        (f) => f?.value,
-      );
 }
 
 mixin SiloFinisher<S extends Silo<O>, O> {
@@ -197,7 +203,7 @@ mixin SiloFinisher<S extends Silo<O>, O> {
     return rows.firstOrNull?.value;
   }
 
-  Future<List<SiloRow<O>>> find() async {
+  Future<SiloRows<O>> find() async {
     await _createTypeTable();
     var q = _silo.toStatement().buildClauses(_tx, kQueryClauses);
 
@@ -207,7 +213,7 @@ mixin SiloFinisher<S extends Silo<O>, O> {
       return _toSiloRow(e);
     }).toList();
 
-    return rows;
+    return SiloRows(rows);
   }
 
   Future<SiloRow<O>?> first() async {
