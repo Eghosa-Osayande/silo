@@ -67,4 +67,9 @@ class DBSqlite3 extends DB {
       rethrow;
     }
   }
+
+  @override
+  Future<void> close() async {
+    db.dispose();
+  }
 }

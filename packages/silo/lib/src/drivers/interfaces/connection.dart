@@ -7,4 +7,6 @@ abstract class Connection {
   Future<void> exec(String sql, [List<Object?> arguments]);
 
   Future<T> transaction<T>(Future<T> Function(DB db) action);
+
+  Future<void> close();
 }

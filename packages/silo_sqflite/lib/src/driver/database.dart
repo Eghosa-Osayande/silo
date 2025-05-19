@@ -35,4 +35,9 @@ class DBSqflite extends DB {
       },
     );
   }
+
+  @override
+  Future<void> close() async {
+    await db.database.close();
+  }
 }
