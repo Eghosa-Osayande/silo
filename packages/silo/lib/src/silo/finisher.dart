@@ -56,15 +56,12 @@ mixin SiloFinisher<S extends Silo<O>, O> {
   S get _silo => this as S;
 
   DB get _tx {
-    if (_silo.db == null) {
-      throw Exception("db called on a Silo without a DB");
-    }
-    return _silo.db!;
+    return _silo.db;
   }
 
   static final _createdTables = <String, bool>{};
 
-  String get _tableName => _silo.name ?? _tx.typeToTableName(O);
+  String get _tableName => _silo.name ?? _tx.migrator.typeToTableName(O);
 
   Expression get tableExpr => Quoted(_tableName);
 
@@ -76,10 +73,10 @@ mixin SiloFinisher<S extends Silo<O>, O> {
     }
 
     final tx = _tx;
-    final hasTable = await tx.hasTable(_tableName);
+    final hasTable = await tx.migrator.hasTable(_tableName);
 
     if (!hasTable) {
-      await tx.createTypeTable(_tableName);
+      await tx.migrator.createJsonTable(_tableName);
     }
 
     _createdTables[_tableName] = true;

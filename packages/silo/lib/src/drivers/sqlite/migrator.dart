@@ -3,8 +3,10 @@ import 'package:silo/src/drivers/interfaces/migrator.dart';
 import 'package:silo/src/sql/expression/expression.dart';
 import 'package:silo/src/sql/expression/quoted.dart';
 
-mixin class SqliteMigrator<S extends DB> implements Migrator {
-  S get _tx => this as S;
+class SqliteMigrator implements Migrator {
+  final DB db;
+
+  SqliteMigrator({required this.db});
 
   String _cleanString(String input) {
     return input.replaceAll(RegExp(r'[^a-zA-Z0-9]'), '_');
@@ -16,10 +18,10 @@ mixin class SqliteMigrator<S extends DB> implements Migrator {
   }
 
   @override
-  Future<void> createTypeTable(String name) async {
+  Future<void> createJsonTable(String name) async {
     final tableExpr = Quoted(name);
 
-    final b = ExprBuilder(_tx);
+    final b = ExprBuilder(db);
 
     b.append(
       """
@@ -43,7 +45,7 @@ CREATE TABLE IF NOT EXISTS ? (
       ],
     );
 
-    await _tx.exec(b.sql, b.args);
+    await db.exec(b.sql, b.args);
   }
 
   @override
@@ -52,9 +54,9 @@ CREATE TABLE IF NOT EXISTS ? (
     final b = Expr(
       "SELECT count(*) as c FROM sqlite_master WHERE type='table' AND name=?",
       [tableName],
-    ).build(_tx);
+    ).build(db);
 
-    final result = await _tx.query(b.sql, b.args);
+    final result = await db.query(b.sql, b.args);
 
     final count = result.first["c"] as num;
 

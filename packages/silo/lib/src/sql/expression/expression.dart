@@ -20,7 +20,7 @@ class ExprBuilder {
   }
 
   ExprBuilder writeQuoted(String str) {
-    _buffer.write(db.quote(str));
+    _buffer.write(db.dialector.quote(str));
     _dispose();
     return this;
   }
@@ -41,7 +41,7 @@ class ExprBuilder {
         break;
       default:
         _var.add(object);
-        db.writeVar(this);
+        db.dialector.writeVar(this);
     }
 
     return this;

@@ -2,26 +2,10 @@ import '../drivers/interfaces/database.dart';
 import 'finisher.dart';
 import 'query_builder.dart';
 
-class Silo<T>
-    with
-        SiloQueryBuilder<Silo<T>>,
-        SiloFinisher<Silo<T>, T> {
-  Silo(DB db) : this._db = db;
+class Silo<T> with SiloQueryBuilder<Silo<T>>, SiloFinisher<Silo<T>, T> {
+  Silo(this.db, {this.name});
 
-  DB? _db;
-  String? name;
+  final DB db;
+  final String? name;
 
-  DB? get db {
-    return _db;
-  }
-
-  Silo setDB(DB tx) {
-    _db = tx;
-    return this;
-  }
-
-  Silo collection(String name) {
-    this.name = name;
-    return this;
-  }
 }

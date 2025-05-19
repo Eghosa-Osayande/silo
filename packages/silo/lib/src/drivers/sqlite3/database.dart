@@ -1,17 +1,21 @@
 import 'package:silo/src/drivers/interfaces/database.dart';
+import 'package:silo/src/drivers/interfaces/dialector.dart';
+import 'package:silo/src/drivers/interfaces/migrator.dart';
 import 'package:silo/src/drivers/sqlite/dialector.dart';
 import 'package:silo/src/drivers/sqlite/migrator.dart';
 import 'package:sqlite3/sqlite3.dart';
 
 import 'conn.dart';
 
-class Sqlite3DB extends DB
-    with
-        SqliteDialector,
-        Sqlite3Connection<Sqlite3DB>,
-        SqliteMigrator<Sqlite3DB> {
-  //
+class Sqlite3DB extends DB with Sqlite3Connection<Sqlite3DB> {
+
   final Database db;
+
+  @override
+  Dialector get dialector => SqliteDialector();
+
+  @override
+  Migrator get migrator => SqliteMigrator(db: this);
 
   Sqlite3DB(this.db);
 

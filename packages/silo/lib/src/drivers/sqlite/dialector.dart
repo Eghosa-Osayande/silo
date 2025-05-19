@@ -1,7 +1,7 @@
 import 'package:silo/src/drivers/interfaces/dialector.dart';
 import 'package:silo/src/sql/expression/expression.dart';
 
-mixin SqliteDialector implements Dialector {
+class SqliteDialector implements Dialector {
   @override
   String quote(String str) {
     bool underQuoted = false;
