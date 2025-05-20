@@ -61,13 +61,13 @@ class SiloRows<T> with ListMixin<SiloRow<T>> {
 mixin SiloFinisher<S extends Silo<O>, O> {
   S get _silo => this as S;
 
-  DB get _tx {
+  DB get _db {
     return _silo.db;
   }
 
   static final _createdTables = <String, bool>{};
 
-  String get _tableName => _silo.name ?? _tx.migrator.typeToTableName(O);
+  String get _tableName => _silo.name ?? _db.migrator.typeToTableName(O);
 
   Expression get tableExpr => Quoted(_tableName);
 
@@ -78,11 +78,10 @@ mixin SiloFinisher<S extends Silo<O>, O> {
       return;
     }
 
-    final tx = _tx;
-    final hasTable = await tx.migrator.hasTable(_tableName);
+    final hasTable = await _db.migrator.hasTable(_tableName);
 
     if (!hasTable) {
-      await tx.migrator.createJsonTable(_tableName);
+      await _db.migrator.createJsonTable(_tableName);
     }
 
     _createdTables[_tableName] = true;
@@ -108,12 +107,12 @@ mixin SiloFinisher<S extends Silo<O>, O> {
 
     statement.addClauses(
       [
-        Insert(tableExpr, orReplace: _tx.dialector.supportsOrReplace()),
+        Insert(tableExpr, orReplace: _db.dialector.supportsOrReplace()),
         Values(
           createValues.keys.map((e) => Quoted(e)),
           createValues.values,
         ),
-        if (!_tx.dialector.supportsOrReplace())
+        if (!_db.dialector.supportsOrReplace())
           OnConflict(
             [
               Quoted("key"),
@@ -139,11 +138,10 @@ mixin SiloFinisher<S extends Silo<O>, O> {
           ),
       ],
     );
-    final tx = _tx;
 
-    var q = statement.buildClauses(tx, kCreateClauses);
+    var q = statement.buildClauses(_db, kCreateClauses);
 
-    await tx.exec(q.sql, q.args);
+    await _db.exec(q.sql, q.args);
   }
 
   Future<void> remove(String key) async {
@@ -160,15 +158,14 @@ mixin SiloFinisher<S extends Silo<O>, O> {
         )
       ])
     ]);
-    final tx = _tx;
-    var q = statement.buildClauses(tx, kDeleteClauses);
 
-    await tx.exec(q.sql, q.args);
+    var q = statement.buildClauses(_db, kDeleteClauses);
+
+    await _db.exec(q.sql, q.args);
   }
 
   Future<O?> get(String key) async {
     await _createTypeTable();
-    final db = _tx;
     var statement = _silo.toStatement();
 
     statement.addClauses([
@@ -190,9 +187,9 @@ mixin SiloFinisher<S extends Silo<O>, O> {
       ])
     ]);
 
-    final q = statement.buildClauses(db, kQueryClauses);
+    final q = statement.buildClauses(_db, kQueryClauses);
 
-    final results = await _tx.query(q.sql, q.args);
+    final results = await _db.query(q.sql, q.args);
 
     final rows = results.map((e) {
       return _toSiloRow(e);
@@ -203,9 +200,9 @@ mixin SiloFinisher<S extends Silo<O>, O> {
 
   Future<SiloRows<O>> find() async {
     await _createTypeTable();
-    var q = _silo.toStatement().buildClauses(_tx, kQueryClauses);
+    var q = _silo.toStatement().buildClauses(_db, kQueryClauses);
 
-    final results = await _tx.query(q.sql, q.args);
+    final results = await _db.query(q.sql, q.args);
 
     final rows = results.map((e) {
       return _toSiloRow(e);
@@ -216,9 +213,9 @@ mixin SiloFinisher<S extends Silo<O>, O> {
 
   Future<SiloRow<O>?> first() async {
     await _createTypeTable();
-    var q = _silo.limit(1).toStatement().buildClauses(_tx, kQueryClauses);
+    var q = _silo.limit(1).toStatement().buildClauses(_db, kQueryClauses);
 
-    final results = await _tx.query(q.sql, q.args);
+    final results = await _db.query(q.sql, q.args);
 
     if (results.firstOrNull == null) {
       return null;
@@ -231,9 +228,9 @@ mixin SiloFinisher<S extends Silo<O>, O> {
   }
 
   Future<T> transaction<T>(T Function(Silo<O> silo) action) async {
-    return _tx.transaction(
-      (db) async {
-        return action(Silo(db));
+    return _db.transaction(
+      (tx) async {
+        return action(Silo(tx));
       },
     );
   }

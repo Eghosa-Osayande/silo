@@ -7,5 +7,4 @@ class Silo<T> with SiloQueryBuilder<Silo<T>>, SiloFinisher<Silo<T>, T> {
 
   final DB db;
   final String? name;
-
 }
