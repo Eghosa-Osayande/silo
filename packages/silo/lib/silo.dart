@@ -3,10 +3,10 @@
 library;
 
 export 'src/silo/silo.dart';
+export 'src/silo/registry.dart';
 export 'src/silo/query_builder.dart' show Logic;
-export 'src/silo/models.dart' show SiloModel;
-export 'src/silo/finisher.dart'
-    show SiloRow, SiloRows;
+export 'src/silo/models.dart' show SiloValue;
+export 'src/silo/finisher.dart' show SiloRow, SiloRows, FutureSiloRowsX;
 
 export 'src/drivers/interfaces/connection.dart';
 export 'src/drivers/interfaces/database.dart';

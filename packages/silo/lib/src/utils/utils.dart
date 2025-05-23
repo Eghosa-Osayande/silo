@@ -91,7 +91,7 @@ String encodeObj(dynamic obj) {
     return obj.toString();
   }
 
-  if (obj is SiloModel) {
+  if (obj is SiloValue) {
     return json.encode(obj.toJson());
   }
 

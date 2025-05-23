@@ -1,9 +1,9 @@
-import 'models.dart';
+
 
 class SiloFactory {
   static final _factories = <Type, dynamic Function(dynamic)>{};
 
-  static void register<T extends SiloModel, I>(T Function(I) factory) {
+  static void register<T, I>(T Function(I) factory) {
     _factories[T] = (input) => factory(input as I);
   }
 

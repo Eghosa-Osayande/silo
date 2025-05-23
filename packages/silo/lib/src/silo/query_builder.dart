@@ -1,14 +1,13 @@
-import '../sql/clauses/clause.dart';
-import '../sql/clauses/from.dart';
-import '../sql/clauses/limit.dart';
-import '../sql/clauses/offset.dart';
-import '../sql/clauses/select.dart';
-import '../sql/clauses/where.dart';
-import '../sql/expression/condition.dart';
-import '../sql/expression/expression.dart';
-import '../sql/expression/quoted.dart';
-import '../sql/statement.dart';
-
+import 'package:silo/src/sql/clauses/clause.dart';
+import 'package:silo/src/sql/clauses/from.dart';
+import 'package:silo/src/sql/clauses/limit.dart';
+import 'package:silo/src/sql/clauses/offset.dart';
+import 'package:silo/src/sql/clauses/select.dart';
+import 'package:silo/src/sql/clauses/where.dart';
+import 'package:silo/src/sql/expression/condition.dart';
+import 'package:silo/src/sql/expression/expression.dart';
+import 'package:silo/src/sql/expression/quoted.dart';
+import 'package:silo/src/sql/statement.dart';
 import 'silo.dart';
 
 enum Logic {
@@ -19,7 +18,7 @@ enum Logic {
   const Logic(this.name);
 }
 
-mixin SiloQueryBuilder<T extends Silo> {
+mixin SiloQueryBuilder<T extends Silo<O>, O> {
   T get _silo => this as T;
   final Map<String, Expression> _selection = {};
 
@@ -28,6 +27,8 @@ mixin SiloQueryBuilder<T extends Silo> {
 
   int? _limit;
   int? _offset;
+
+  String? _tableName;
 
   bool get hasConditions => _conditions.isNotEmpty;
 
@@ -39,6 +40,13 @@ mixin SiloQueryBuilder<T extends Silo> {
     return this as T;
   }
 
+  T from(String table) {
+    _tableName = table;
+    return this as T;
+  }
+
+  String get tableName => _tableName ?? _silo.db.migrator.typeToTableName(O);
+
   T limit(int limit) {
     _limit = limit;
     return this as T;
@@ -49,14 +57,9 @@ mixin SiloQueryBuilder<T extends Silo> {
     return this as T;
   }
 
-  Expression _transformDataColumn(String dataColumn) {
-    String output = _transformColumns(dataColumn);
-    return Expr(output);
-  }
-
   T eq(
+    String column,
     dynamic value, {
-    String column = "#",
     bool negate = false,
     Logic logicOp = Logic.and,
   }) {
@@ -72,8 +75,8 @@ mixin SiloQueryBuilder<T extends Silo> {
   }
 
   T neq(
+    String column,
     dynamic value, {
-    String column = "#",
     bool negate = false,
     Logic logicOp = Logic.and,
   }) {
@@ -89,8 +92,8 @@ mixin SiloQueryBuilder<T extends Silo> {
   }
 
   T gt(
+    String column,
     dynamic value, {
-    String column = "#",
     bool negate = false,
     Logic logicOp = Logic.and,
   }) {
@@ -106,8 +109,8 @@ mixin SiloQueryBuilder<T extends Silo> {
   }
 
   T gte(
+    String column,
     dynamic value, {
-    String column = "#",
     bool negate = false,
     Logic logicOp = Logic.and,
   }) {
@@ -123,8 +126,8 @@ mixin SiloQueryBuilder<T extends Silo> {
   }
 
   T lt(
+    String column,
     dynamic value, {
-    String column = "#",
     bool negate = false,
     Logic logicOp = Logic.and,
   }) {
@@ -140,8 +143,8 @@ mixin SiloQueryBuilder<T extends Silo> {
   }
 
   T lte(
+    String column,
     dynamic value, {
-    String column = "#",
     bool negate = false,
     Logic logicOp = Logic.and,
   }) {
@@ -157,8 +160,8 @@ mixin SiloQueryBuilder<T extends Silo> {
   }
 
   T like(
+    String column,
     dynamic value, {
-    String column = "#",
     bool negate = false,
     Logic logicOp = Logic.and,
   }) {
@@ -174,8 +177,8 @@ mixin SiloQueryBuilder<T extends Silo> {
   }
 
   T ilike(
+    String column,
     dynamic value, {
-    String column = "#",
     bool negate = false,
     Logic logicOp = Logic.and,
   }) {
@@ -191,8 +194,8 @@ mixin SiloQueryBuilder<T extends Silo> {
   }
 
   T IS(
+    String column,
     dynamic value, {
-    String column = "#",
     bool negate = false,
     Logic logicOp = Logic.and,
   }) {
@@ -302,8 +305,8 @@ mixin SiloQueryBuilder<T extends Silo> {
   }
 
   T inList(
+    String column,
     Iterable values, {
-    String column = "#",
     bool negate = false,
     Logic logicOp = Logic.and,
   }) {
@@ -321,8 +324,8 @@ mixin SiloQueryBuilder<T extends Silo> {
   }
 
   T notInList(
+    String column,
     Iterable values, {
-    String column = "#",
     bool negate = false,
     Logic logicOp = Logic.and,
   }) {
@@ -355,25 +358,40 @@ mixin SiloQueryBuilder<T extends Silo> {
     return this as T;
   }
 
-  String _transformColumns(String query) {
-    final pattern = RegExp(
-      r'\#(?:[a-zA-Z0-9_-]+(?:\[\d+\])?)*(?:\.[a-zA-Z0-9_-]+(?:\[\d+\])?)*',
-    );
+  Expression _transformDataColumn(String dataColumn) {
+    // if (<O>[] is List<SiloTable>) {
+    //   return Expr(dataColumn);
+    // }
+    String output = _transformColumns(dataColumn);
+    return Expr(output);
+  }
 
-    final output = query.replaceAllMapped(
-      pattern,
-      (match) {
-        final original = match.group(0)!;
-        String ps;
-        if (original == '#') {
-          ps = r'$';
-        } else {
-          ps = r'$.';
-        }
-        return "json_extract(`value`, '${original.replaceFirst('#', ps)}')";
-      },
-    );
-    return output;
+  String _transformColumns(String query) {
+    final sep = ".";
+
+    if (query.isEmpty) {
+      query = sep;
+    }
+
+    final index = query.indexOf(sep);
+    if (index == -1) {
+      return query;
+    }
+
+    var col = query.substring(0, index);
+    var filter = query.substring(index);
+
+    if (col.isEmpty) {
+      col = "value";
+    }
+
+    if (filter == sep) {
+      filter = "";
+    }
+
+    col = _silo.db.dialector.quote(col);
+
+    return "json_extract($col, '\$$filter')";
   }
 
   T _where(String logicOp, dynamic query, [List<dynamic>? args]) {

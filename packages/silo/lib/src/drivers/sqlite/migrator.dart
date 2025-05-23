@@ -1,5 +1,6 @@
 import 'package:silo/src/drivers/interfaces/database.dart';
 import 'package:silo/src/drivers/interfaces/migrator.dart';
+import 'package:silo/src/silo/models.dart';
 import 'package:silo/src/sql/expression/expression.dart';
 import 'package:silo/src/sql/expression/quoted.dart';
 
@@ -61,5 +62,55 @@ CREATE TABLE IF NOT EXISTS ? (
     final count = result.first["c"] as num;
 
     return count > 0;
+  }
+
+  Future<Set<String>> getColumnNames(String table) async {
+    final tableExpr = Quoted(table);
+    final b = ExprBuilder(db);
+    b.append("""PRAGMA table_info(?) """, [tableExpr]);
+
+    final result = await db.query(b.sql, b.args);
+
+    final colNames = result
+        .map(
+          (row) => row['name'].toString(),
+        )
+        .toList();
+
+    return Set.from(colNames);
+  }
+
+  @override
+  Future<void> autoMigrateSiloTable<T>(SiloTable<T> table) async {
+    return db.transaction(
+      (tx) async {
+        final tableJson = table.toMap();
+
+        final name = table.tableName()?? tx.migrator.typeToTableName(T);
+        final keys = tableJson.keys;
+        final primaryKey = table.tableKey();
+        final tableExpr = Quoted(name);
+
+        final exists = await hasTable(name);
+
+        if (!exists) {
+          await ExprBuilder(tx).append(
+            "CREATE TABLE IF NOT EXISTS ? (? TEXT NOT NULL, PRIMARY KEY (?));",
+            [tableExpr, Quoted(primaryKey), Quoted(primaryKey)],
+          ).exec();
+        }
+
+        final cols = await getColumnNames(name);
+        for (final key in keys) {
+          if (cols.contains(key)) {
+            continue;
+          }
+          await ExprBuilder(tx).append(
+            "ALTER TABLE ? ADD ? TEXT",
+            [tableExpr, Quoted(key), Quoted(primaryKey)],
+          ).exec();
+        }
+      },
+    );
   }
 }

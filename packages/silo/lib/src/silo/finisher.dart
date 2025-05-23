@@ -1,6 +1,7 @@
 import 'dart:collection';
 
 import 'package:silo/src/drivers/interfaces/database.dart';
+import 'package:silo/src/silo/models.dart';
 import 'package:silo/src/silo/registry.dart';
 import 'package:silo/src/sql/clauses/clause.dart';
 import 'package:silo/src/sql/clauses/delete.dart';
@@ -58,6 +59,16 @@ class SiloRows<T> with ListMixin<SiloRow<T>> {
       .toList();
 }
 
+extension FutureSiloRowsX<T> on Future<SiloRows<T>> {
+  Future<List<T>> get values => this.then(
+        (value) => value.rows
+            .map(
+              (e) => e.value,
+            )
+            .toList(),
+      );
+}
+
 mixin SiloFinisher<S extends Silo<O>, O> {
   S get _silo => this as S;
 
@@ -67,24 +78,22 @@ mixin SiloFinisher<S extends Silo<O>, O> {
 
   static final _createdTables = <String, bool>{};
 
-  String get _tableName => _silo.name ?? _db.migrator.typeToTableName(O);
-
-  Expression get tableExpr => Quoted(_tableName);
+  Expression get tableExpr => Quoted(_silo.tableName);
 
   Future<void> _createTypeTable() async {
-    final hasCreatedTable = _createdTables[_tableName];
+    final hasCreatedTable = _createdTables[_silo.tableName];
 
     if (hasCreatedTable == true) {
       return;
     }
 
-    final hasTable = await _db.migrator.hasTable(_tableName);
+    final hasTable = await _db.migrator.hasTable(_silo.tableName);
 
     if (!hasTable) {
-      await _db.migrator.createJsonTable(_tableName);
+      await _db.migrator.createJsonTable(_silo.tableName);
     }
 
-    _createdTables[_tableName] = true;
+    _createdTables[_silo.tableName] = true;
   }
 
   Future<void> put(String key, O value, {DateTime? expireAt}) async {
@@ -236,18 +245,90 @@ mixin SiloFinisher<S extends Silo<O>, O> {
   }
 
   SiloRow<O> _toSiloRow(Map<String, Object?> e) {
-    e = Map.from(e);
-    final obj = decodeObj(e["value"].toString());
-    O value;
+    if (<O>[] is List<SiloTable>) {
+      final m = <String, dynamic>{};
 
-    try {
+      for (var key in e.keys) {
+        m[key] = decodeObj(e[key].toString());
+      }
+
       final fn = SiloFactory.factoryFor<O>();
-      value = fn(obj);
-    } catch (e) {
-      value = obj as O;
+      final value = fn(m) as SiloTable;
+      return SiloRow(value: value as O, key: e[value.tableKey()].toString());
+    } else {
+      e = Map.from(e);
+      final obj = decodeObj(e["value"].toString());
+      O value;
+
+      try {
+        final fn = SiloFactory.factoryFor<O>();
+        value = fn(obj);
+      } catch (e) {
+        value = obj as O;
+      }
+
+      e["value"] = value;
+      return SiloRow(value: value, key: e["key"].toString());
+    }
+  }
+
+  Future<void> putSilo(O obj) async {
+    if (obj is! SiloTable) {
+      throw Exception(
+        "$obj is not an instance of $SiloTable",
+      );
     }
 
-    e["value"] = value;
-    return SiloRow(value: value, key: e["key"].toString());
+    final table = obj as SiloTable;
+    final createValues = table.toMap();
+
+    for (final entry in createValues.entries) {
+      createValues[entry.key] = encodeObj(entry.value);
+    }
+
+    final updateValues = Map.from(createValues)..remove(table.tableKey());
+
+    _db.migrator.autoMigrateSiloTable(table);
+
+    final statement = _silo.toStatement();
+
+    statement.addClauses(
+      [
+        Insert(tableExpr,
+            orReplace: _db.dialector.supportsOrReplace()),
+        Values(
+          createValues.keys.map((e) => Quoted(e)),
+          createValues.values,
+        ),
+        if (!_db.dialector.supportsOrReplace())
+          OnConflict(
+            [
+              Quoted(table.tableKey()),
+            ],
+            doUpdate: SetClause(
+              [
+                ...updateValues.keys.map(
+                  (e) => Expr(
+                    "? = COALESCE(?.?, ?.?)",
+                    [
+                      Quoted(e),
+                      Quoted("excluded"),
+                      Quoted(e),
+                      tableExpr,
+                      Quoted(e),
+                    ],
+                  ),
+                ),
+              ],
+              isExcluded: true,
+              table: tableExpr,
+            ),
+          ),
+      ],
+    );
+
+    var q = statement.buildClauses(_db, kCreateClauses);
+
+    await _db.exec(q.sql, q.args);
   }
 }
