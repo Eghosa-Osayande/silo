@@ -27,7 +27,13 @@ class ExprBuilder {
 
   ExprBuilder addVar(dynamic object) {
     _var.add(object);
-    _buffer.write('?');
+
+    if (object is Iterable) {
+      _buffer.write('(?)');
+    } else {
+      _buffer.write('?');
+    }
+
     _dispose();
     return this;
   }
@@ -99,7 +105,7 @@ class ExprBuilder {
     for (var v in rawSql.split("")) {
       if (v == '?' && _var.length > idx) {
         final rv = _var[idx];
-        
+
         if (afterParenthesis) {
           switch (rv) {
             case Iterable rv:
