@@ -1,3 +1,4 @@
+import 'package:silo/src/silo/registry.dart';
 import 'package:silo/src/sql/clauses/clause.dart';
 import 'package:silo/src/sql/clauses/from.dart';
 import 'package:silo/src/sql/clauses/limit.dart';
@@ -8,6 +9,7 @@ import 'package:silo/src/sql/expression/condition.dart';
 import 'package:silo/src/sql/expression/expression.dart';
 import 'package:silo/src/sql/expression/quoted.dart';
 import 'package:silo/src/sql/statement.dart';
+import 'models.dart';
 import 'silo.dart';
 
 enum Logic {
@@ -45,7 +47,22 @@ mixin SiloQueryBuilder<T extends Silo<O>, O> {
     return this as T;
   }
 
-  String get tableName => _tableName ?? _silo.db.migrator.typeToTableName(O);
+  String get tableName {
+    if (_tableName != null) return _tableName!;
+    final factoryName = SiloRegistry.factoryNameOrNull<O>();
+
+    if (factoryName != null) return factoryName;
+
+    if (<O>[] is List<SiloTable<O>>) {
+      throw Exception("no registered named factory found for SiloTable $T");
+    }
+
+    return _silo.db.migrator.typeToTableName(O);
+  }
+
+  Expression get tableExpr {
+    return Quoted(tableName);
+  }
 
   T limit(int limit) {
     _limit = limit;

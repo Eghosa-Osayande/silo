@@ -78,9 +78,7 @@ mixin SiloFinisher<S extends Silo<O>, O> {
 
   static final _createdTables = <String, bool>{};
 
-  Expression get tableExpr => Quoted(_silo.tableName);
-
-  Future<void> _createTypeTable() async {
+  Future<void> _createValueTable() async {
     final hasCreatedTable = _createdTables[_silo.tableName];
 
     if (hasCreatedTable == true) {
@@ -90,7 +88,7 @@ mixin SiloFinisher<S extends Silo<O>, O> {
     final hasTable = await _db.migrator.hasTable(_silo.tableName);
 
     if (!hasTable) {
-      await _db.migrator.createJsonTable(_silo.tableName);
+      await _db.migrator.createValueTable(_silo.tableName);
     }
 
     _createdTables[_silo.tableName] = true;
@@ -98,7 +96,7 @@ mixin SiloFinisher<S extends Silo<O>, O> {
 
   Future<void> put(String key, O value, {DateTime? expireAt}) async {
     final obj = encodeObj(value);
-    await _createTypeTable();
+    await _createValueTable();
 
     final statement = _silo.toStatement();
 
@@ -116,7 +114,7 @@ mixin SiloFinisher<S extends Silo<O>, O> {
 
     statement.addClauses(
       [
-        Insert(tableExpr, orReplace: _db.dialector.supportsOrReplace()),
+        Insert(_silo.tableExpr, orReplace: _db.dialector.supportsOrReplace()),
         Values(
           createValues.keys.map((e) => Quoted(e)),
           createValues.values,
@@ -135,14 +133,14 @@ mixin SiloFinisher<S extends Silo<O>, O> {
                       Quoted(e),
                       Quoted("excluded"),
                       Quoted(e),
-                      tableExpr,
+                      _silo.tableExpr,
                       Quoted(e),
                     ],
                   ),
                 ),
               ],
               isExcluded: true,
-              table: tableExpr,
+              table: _silo.tableExpr,
             ),
           ),
       ],
@@ -154,11 +152,11 @@ mixin SiloFinisher<S extends Silo<O>, O> {
   }
 
   Future<void> remove(String key) async {
-    await _createTypeTable();
+    await _createValueTable();
     final statement = _silo.toStatement();
 
     statement.addClauses([
-      From(tableExpr, []),
+      From(_silo.tableExpr, []),
       Delete(),
       Where([
         Expr(
@@ -174,12 +172,12 @@ mixin SiloFinisher<S extends Silo<O>, O> {
   }
 
   Future<O?> get(String key) async {
-    await _createTypeTable();
+    await _createValueTable();
     var statement = _silo.toStatement();
 
     statement.addClauses([
       Select([Expr("*")], []),
-      From(tableExpr, []),
+      From(_silo.tableExpr, []),
       Where([
         Expr(
           "? = ?",
@@ -208,7 +206,7 @@ mixin SiloFinisher<S extends Silo<O>, O> {
   }
 
   Future<SiloRows<O>> find() async {
-    await _createTypeTable();
+    await _createValueTable();
     var q = _silo.toStatement().buildClauses(_db, kQueryClauses);
 
     final results = await _db.query(q.sql, q.args);
@@ -221,7 +219,7 @@ mixin SiloFinisher<S extends Silo<O>, O> {
   }
 
   Future<SiloRow<O>?> first() async {
-    await _createTypeTable();
+    await _createValueTable();
     var q = _silo.limit(1).toStatement().buildClauses(_db, kQueryClauses);
 
     final results = await _db.query(q.sql, q.args);
@@ -236,7 +234,7 @@ mixin SiloFinisher<S extends Silo<O>, O> {
     return rows.first;
   }
 
-  Future<T> transaction<T>(T Function(Silo<O> silo) action) async {
+  Future<T> transaction<T>(T Function(Silo<O> tx) action) async {
     return _db.transaction(
       (tx) async {
         return action(Silo(tx));
@@ -252,7 +250,7 @@ mixin SiloFinisher<S extends Silo<O>, O> {
         m[key] = decodeObj(e[key].toString());
       }
 
-      final fn = SiloFactory.factoryFor<O>();
+      final fn = SiloRegistry.factoryFor<O>();
       final value = fn(m) as SiloTable;
       return SiloRow(value: value as O, key: e[value.tableKey()].toString());
     } else {
@@ -261,7 +259,7 @@ mixin SiloFinisher<S extends Silo<O>, O> {
       O value;
 
       try {
-        final fn = SiloFactory.factoryFor<O>();
+        final fn = SiloRegistry.factoryFor<O>();
         value = fn(obj);
       } catch (e) {
         value = obj as O;
@@ -272,12 +270,14 @@ mixin SiloFinisher<S extends Silo<O>, O> {
     }
   }
 
-  Future<void> putSilo(O obj) async {
-    if (obj is! SiloTable) {
+  Future<void> putSilo(SiloTable<O> obj) async {
+    if (<O>[] is! List<SiloTable>) {
       throw Exception(
         "$obj is not an instance of $SiloTable",
       );
     }
+
+     await _db.migrator.autoMigrateSiloTable(obj);
 
     final table = obj as SiloTable;
     final createValues = table.toMap();
@@ -288,14 +288,13 @@ mixin SiloFinisher<S extends Silo<O>, O> {
 
     final updateValues = Map.from(createValues)..remove(table.tableKey());
 
-    _db.migrator.autoMigrateSiloTable(table);
+   
 
     final statement = _silo.toStatement();
 
     statement.addClauses(
       [
-        Insert(tableExpr,
-            orReplace: _db.dialector.supportsOrReplace()),
+        Insert(_silo.tableExpr, orReplace: _db.dialector.supportsOrReplace()),
         Values(
           createValues.keys.map((e) => Quoted(e)),
           createValues.values,
@@ -314,14 +313,14 @@ mixin SiloFinisher<S extends Silo<O>, O> {
                       Quoted(e),
                       Quoted("excluded"),
                       Quoted(e),
-                      tableExpr,
+                      _silo.tableExpr,
                       Quoted(e),
                     ],
                   ),
                 ),
               ],
               isExcluded: true,
-              table: tableExpr,
+              table: _silo.tableExpr,
             ),
           ),
       ],

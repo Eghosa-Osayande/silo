@@ -1,3 +1,4 @@
+
 mixin SiloValue {
   dynamic toJson();
 }
@@ -7,5 +8,4 @@ mixin SiloTable<T> {
 
   String tableKey();
 
-  String? tableName();
 }
