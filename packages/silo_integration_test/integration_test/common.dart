@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:silo/silo.dart';
-import 'package:silo_integration_test/student.dart';
+import 'package:silo_integration_test/models/student.dart';
 
 Future<void> truncateAllTables(DB db) async {
   final tables = await db.query('''
