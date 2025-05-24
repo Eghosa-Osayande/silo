@@ -1,4 +1,4 @@
-import 'package:silo/src/silo/models.dart';
+import '/src/silo/models.dart';
 
 abstract class Migrator {
   Future<void> createValueTable(String name);

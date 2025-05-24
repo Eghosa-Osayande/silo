@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:silo/silo.dart';
+
 import 'package:silo_example_app/models/student.dart';
 
 DB? _db;
@@ -17,4 +18,8 @@ Future<void> initDB() async {
 
   _db ??= await SiloDB.fromPath(path);
   SiloRegistry.registerNamedFactory("students", Student.fromJson);
+
+  await db.migrator.autoMigrateSiloTable(
+    Student(id: "id", firstName: "firstName", lastName: "lastName"),
+  );
 }

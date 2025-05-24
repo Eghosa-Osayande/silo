@@ -1,4 +1,4 @@
-import 'package:silo/src/sql/expression/expression.dart';
+import '/src/sql/expression/expression.dart';
 
 abstract class Dialector {
   String quote(String str);

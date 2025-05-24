@@ -1,6 +1,6 @@
 import 'dart:convert';
 
-import 'package:silo/src/silo/models.dart';
+import '/src/silo/models.dart';
 
 extension StringX on String {
   String trimSuffix(String suffix) {

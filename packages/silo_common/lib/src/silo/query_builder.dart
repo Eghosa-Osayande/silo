@@ -1,14 +1,14 @@
-import 'package:silo/src/silo/registry.dart';
-import 'package:silo/src/sql/clauses/clause.dart';
-import 'package:silo/src/sql/clauses/from.dart';
-import 'package:silo/src/sql/clauses/limit.dart';
-import 'package:silo/src/sql/clauses/offset.dart';
-import 'package:silo/src/sql/clauses/select.dart';
-import 'package:silo/src/sql/clauses/where.dart';
-import 'package:silo/src/sql/expression/condition.dart';
-import 'package:silo/src/sql/expression/expression.dart';
-import 'package:silo/src/sql/expression/quoted.dart';
-import 'package:silo/src/sql/statement.dart';
+import '/src/silo/registry.dart';
+import '/src/sql/clauses/clause.dart';
+import '/src/sql/clauses/from.dart';
+import '/src/sql/clauses/limit.dart';
+import '/src/sql/clauses/offset.dart';
+import '/src/sql/clauses/select.dart';
+import '/src/sql/clauses/where.dart';
+import '/src/sql/expression/condition.dart';
+import '/src/sql/expression/expression.dart';
+import '/src/sql/expression/quoted.dart';
+import '/src/sql/statement.dart';
 import 'models.dart';
 import 'silo.dart';
 

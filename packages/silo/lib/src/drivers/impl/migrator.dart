@@ -1,9 +1,4 @@
-import 'package:silo/src/drivers/interfaces/database.dart';
-import 'package:silo/src/drivers/interfaces/migrator.dart';
-import 'package:silo/src/silo/models.dart';
-import 'package:silo/src/silo/registry.dart';
-import 'package:silo/src/sql/expression/expression.dart';
-import 'package:silo/src/sql/expression/quoted.dart';
+import 'package:silo_common/silo_common.dart';
 
 class SqliteMigrator implements Migrator {
   final DB db;
@@ -56,8 +51,6 @@ CREATE TABLE IF NOT EXISTS ? (
       [tableName],
     ).build(db).query();
 
-   
-
     final count = result.first["c"] as num;
 
     return count > 0;
@@ -84,33 +77,33 @@ CREATE TABLE IF NOT EXISTS ? (
   Future<void> autoMigrateSiloTable<T>(SiloTable<T> table) async {
     return db.transaction(
       (tx) async {
-    final migrator = tx.migrator;
-    final tableJson = table.toMap();
+        final migrator = tx.migrator;
+        final tableJson = table.toMap();
 
-    final name = SiloRegistry.factoryName<T>();
-    final keys = tableJson.keys;
-    final primaryKey = table.tableKey();
-    final tableExpr = Quoted(name);
+        final name = SiloRegistry.factoryName<T>();
+        final keys = tableJson.keys;
+        final primaryKey = table.tableKey();
+        final tableExpr = Quoted(name);
 
-    final exists = await migrator.hasTable(name);
+        final exists = await migrator.hasTable(name);
 
-    if (!exists) {
-      await ExprBuilder(tx).append(
-        "CREATE TABLE IF NOT EXISTS ? (? TEXT NOT NULL, PRIMARY KEY (?));",
-        [tableExpr, Quoted(primaryKey), Quoted(primaryKey)],
-      ).exec();
-    }
+        if (!exists) {
+          await ExprBuilder(tx).append(
+            "CREATE TABLE IF NOT EXISTS ? (? TEXT NOT NULL, PRIMARY KEY (?));",
+            [tableExpr, Quoted(primaryKey), Quoted(primaryKey)],
+          ).exec();
+        }
 
-    final cols = await migrator.getColumnNames(name);
-    for (final key in keys) {
-      if (cols.contains(key) || key == primaryKey) {
-        continue;
-      }
-      await ExprBuilder(tx).append(
-        "ALTER TABLE ? ADD ? TEXT",
-        [tableExpr, Quoted(key), Quoted(primaryKey)],
-      ).exec();
-    }
+        final cols = await migrator.getColumnNames(name);
+        for (final key in keys) {
+          if (cols.contains(key) || key == primaryKey) {
+            continue;
+          }
+          await ExprBuilder(tx).append(
+            "ALTER TABLE ? ADD ? TEXT",
+            [tableExpr, Quoted(key), Quoted(primaryKey)],
+          ).exec();
+        }
       },
     );
   }

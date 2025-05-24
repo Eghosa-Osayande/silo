@@ -1,4 +1,4 @@
-import 'package:silo/src/silo/silo.dart';
+import '/src/silo/silo.dart';
 
 import 'connection.dart';
 import 'dialector.dart';

@@ -1,20 +1,20 @@
 import 'dart:collection';
 
-import 'package:silo/src/drivers/interfaces/database.dart';
-import 'package:silo/src/silo/models.dart';
-import 'package:silo/src/silo/registry.dart';
-import 'package:silo/src/sql/clauses/clause.dart';
-import 'package:silo/src/sql/clauses/delete.dart';
-import 'package:silo/src/sql/clauses/from.dart';
-import 'package:silo/src/sql/clauses/insert.dart';
-import 'package:silo/src/sql/clauses/on_conflict.dart';
-import 'package:silo/src/sql/clauses/select.dart';
-import 'package:silo/src/sql/clauses/set.dart';
-import 'package:silo/src/sql/clauses/values.dart';
-import 'package:silo/src/sql/clauses/where.dart';
-import 'package:silo/src/sql/expression/expression.dart';
-import 'package:silo/src/sql/expression/quoted.dart';
-import 'package:silo/src/utils/utils.dart';
+import '/src/drivers/interfaces/database.dart';
+import '/src/silo/models.dart';
+import '/src/silo/registry.dart';
+import '/src/sql/clauses/clause.dart';
+import '/src/sql/clauses/delete.dart';
+import '/src/sql/clauses/from.dart';
+import '/src/sql/clauses/insert.dart';
+import '/src/sql/clauses/on_conflict.dart';
+import '/src/sql/clauses/select.dart';
+import '/src/sql/clauses/set.dart';
+import '/src/sql/clauses/values.dart';
+import '/src/sql/clauses/where.dart';
+import '/src/sql/expression/expression.dart';
+import '/src/sql/expression/quoted.dart';
+import '/src/utils/utils.dart';
 
 import 'silo.dart';
 

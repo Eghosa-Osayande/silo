@@ -1,5 +1,4 @@
-import 'package:silo/src/drivers/interfaces/dialector.dart';
-import 'package:silo/src/sql/expression/expression.dart';
+import 'package:silo_common/silo_common.dart';
 
 class SqliteDialector implements Dialector {
   @override
