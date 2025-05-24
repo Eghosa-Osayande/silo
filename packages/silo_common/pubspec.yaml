@@ -12,11 +12,9 @@ topics:
   - database
   - sqlite
   - sql
-  
 
 environment:
   sdk: ^3.6.0
-
 
 dev_dependencies:
   lints: ^5.0.0

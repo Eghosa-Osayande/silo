@@ -19,7 +19,7 @@ environment:
 
 dependencies:
   sqlite_async: ^0.11.5
-  sqlite3_flutter_libs:
+  sqlite3_flutter_libs: ^0.5.30
   silo_common: ^1.0.0
 
 dev_dependencies:
