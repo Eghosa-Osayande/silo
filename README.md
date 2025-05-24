@@ -1,58 +1,123 @@
 # Silo ORM
 
-**Silo** is an ORM-like Dart library that bridges the flexibility of raw SQL with the developer-friendly interface of key-value and document-style databases. Built on top of `async_sqlite` and `sqlite`, it provides a clean and extensible API via `silo_common`, allowing for future integrations with other SQL backends like `sqflite`.
+**Silo** is an ORM-like library for Dart that blends key-value convenience with SQL-backed querying. Built on `async_sqlite` and `sqlite`, it provides a clean, extensible API through `silo_common`, with future support for more backends like `sqflite`.
 
 ---
 
-## 🚀 Installation
-
-Add Silo to your Dart or Flutter project:
+## Installation
 
 ```sh
 dart pub add silo
 ```
 
-Silo includes `sqlite3_flutter_libs` to bundle the native SQLite library for compatibility across platforms.
-
-<!-- ---
-
-## ✨ Features
-
-* Simple key-value and typed object storage
-* Query support via SQL-like expressions
-* Auto-migration: Automatically creates or alters tables based on model structure
-* Support for nested objects via dot-path access (e.g. `school.name`) -->
+Silo includes `sqlite3_flutter_libs` to ensure SQLite compatibility across platforms.
 
 ---
 
-## 🔧 Setup & Integration
+## 1. Open the Database
 
-### 1. Define Your Models
-
-Use `json_serializable` and mix in `SiloTable` to define your entities:
+Start by opening or creating your database:
 
 ```dart
-@JsonSerializable()
+final db = await SiloDB.fromPath("z.db");
+```
+
+---
+
+## 2. Key-Value Storage
+
+Use `silo<T>()` for type-safe storage:
+
+```dart
+  // type safe operation
+  // saves to a different table
+  await db.silo<int>().put("first key", 4321);
+
+  // value1 and value2 are not equal
+  // because they are saved to different tables
+  // even though they have the same key
+  final value1 = await db.silo<int>().get("first key"); // 4321
+
+  final value2 = await db.silo().get("first key"); // 1234
+
+  print(value1 == value2); // false
+```
+
+You can also set expiration for entries:
+
+```dart
+await db.silo<Url>().put(
+  "a url",
+  Url(Uri(path: "/a/url")),
+  expireAt: DateTime.now().add(Duration(hours: 2)),
+);
+```
+
+---
+
+## 3. Custom Types & Factory Registration
+
+To store custom types like `Uri`, implement `SiloValue`:
+
+```dart
+class Url with SiloValue {
+  final Uri uri;
+
+  Url(this.uri);
+  factory Url.parse(String v) => Url(Uri.parse(v));
+
+  @override
+  String toJson() => uri.toString();
+}
+```
+
+Register them globally before use:
+
+```dart
+SiloRegistry.registerFactory(Url.parse);
+```
+
+---
+
+## 4. Silo Tables & Migration
+
+Define structured models with `SiloTable<T>`:
+
+```dart
 class Student with SiloTable<Student> {
-  final String id;
-  final String firstName, lastName;
-  final String? middleName;
-  final DateTime? dateOfBirth;
-  final int? age;
+  final String id, firstName, lastName;
+  final Url profile;
+  final int age;
   final School? school;
 
   Student({
     required this.id,
     required this.firstName,
     required this.lastName,
-    this.middleName,
-    this.dateOfBirth,
-    this.age,
+    required this.profile,
+    required this.age,
     this.school,
   });
 
-  factory Student.fromJson(Map<String, dynamic> json) => _$StudentFromJson(json);
-  Map<String, dynamic> toJson() => _$StudentToJson(this);
+  factory Student.fromJson(Map<String, dynamic> json) => Student(
+        id: json['id'],
+        firstName: json['firstName'],
+        lastName: json['lastName'],
+        profile: Url.parse(json['profile']),
+        age: json['age'],
+        school: json['school'] != null
+            ? School.fromJson(json['school'])
+            : null,
+      );
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'firstName': firstName,
+        'lastName': lastName,
+        'profile': profile.toJson(),
+        'age': age,
+        'school': school?.toJson(),
+      };
 
   @override
   String tableKey() => "id";
@@ -62,80 +127,71 @@ class Student with SiloTable<Student> {
 }
 ```
 
-You can also define custom scalar value types using `SiloValue`:
+Create or update tables automatically:
 
 ```dart
-class Url with SiloValue {
-  final Uri uri;
-
-  Url(this.uri);
-
-  factory Url.parse(String v) => Url(Uri.parse(v));
-
-  @override
-  String toJson() => uri.toString();
-}
+await db.migrator.autoMigrateSiloTable(Student(
+  id: "",
+  firstName: "",
+  lastName: "",
+  profile: Url(Uri()),
+  age: 0,
+  school: School(id: "", name: ""),
+));
 ```
 
-### 2. Initialize the Database
-
-```dart
-final db = await SiloDB.fromPath("z.db");
-```
-
-### 3. Register Factories
-
-Register named and custom type factories:
+Register factory with table name:
 
 ```dart
 SiloRegistry.registerNamedFactory("students", Student.fromJson);
-SiloRegistry.registerFactory(Url.parse);
-```
-
-### 4. Auto-Migration
-
-Generate or update tables automatically:
-
-```dart
-await db.migrator.autoMigrateSiloTable(person);
-```
-
-This adds any missing columns if the table already exists.
-
-### 5. Key-Value Usage
-
-```dart
-await db.silo<int>().put("akey", 1234);
-final val = await db.silo<int>().get("akey");
-print(val); // 1234
-```
-
-### 6. Storing and Querying Objects
-
-```dart
-final silo = db.silo<Student>();
-await silo.putSilo(person);
-
-final results = await silo
-  .eq("firstName", "Ada")
-  .find()
-  .values;
-
-print(results.map((e) => e.toJson()));
-```
-
-#### Querying Nested Fields
-
-```dart
-final nestedResults = await silo
-  .like("school.name", "Par%")
-  .find()
-  .values;
 ```
 
 ---
 
-## 🧹 Cleanup
+## 5. Insert & Query Structured Data
+
+Insert model instances:
+
+```dart
+await db.silo<Student>().putSilo(student);
+```
+
+Perform queries:
+
+```dart
+final results = await db
+    .silo<Student>()
+    .eq('firstName', 'John')
+    .gte('age', 18)
+    .find()
+    .values;
+
+print(results.map((e) => e.toJson()));
+```
+
+Supports nested queries and logical chaining:
+
+```dart
+final students = await db
+    .silo<Student>()
+    .eq('id', 'id')
+    .inList('lastName', ['James'])
+    .where(
+      db.silo<Student>()
+        ..gte('age', 20)
+        ..or(
+          db.silo<Student>()..lt('age', 70),
+        ),
+    )
+    .find()
+    .values;
+```
+
+---
+
+## Cleanup
+
+Always close the database when done:
 
 ```dart
 await db.close();
@@ -143,13 +199,7 @@ await db.close();
 
 ---
 
-<!-- ## 🧪 Example
-
-For complete examples, check the `/example` directory or start with the `main()` function in the code above.
-
---- -->
-
-## 🔗 License
+## License
 
 MIT
 
