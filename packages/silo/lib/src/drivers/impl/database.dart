@@ -8,8 +8,7 @@ import 'package:sqlite_async/sqlite_async.dart';
 import 'dialector.dart';
 import 'migrator.dart';
 
-
-class DefaultDB extends DB {
+class SiloDB extends DB {
   final SqliteDatabase database;
   final SqliteWriteContext? ctx;
 
@@ -19,24 +18,24 @@ class DefaultDB extends DB {
   @override
   Migrator get migrator => SqliteMigrator(db: this);
 
-  DefaultDB(
+  SiloDB(
     this.database, {
     this.ctx,
   });
 
-  static Future<DefaultDB> fromPath(
+  static Future<SiloDB> fromPath(
     String path,
   ) async {
     final database = SqliteDatabase(path: path);
     await _run(() => database.initialize());
-    return DefaultDB(database);
+    return SiloDB(database);
   }
 
-  static Future<DefaultDB> fromDatabase(
+  static Future<SiloDB> fromDatabase(
     SqliteDatabase database,
   ) async {
     await _run(() => database.initialize());
-    return DefaultDB(database);
+    return SiloDB(database);
   }
 
   SqliteWriteContext get db => ctx ?? database;
@@ -75,11 +74,11 @@ class DefaultDB extends DB {
   ) async {
     if (ctx == null) {
       return _run(() => database.writeTransaction(
-            (tx) => action(DefaultDB(database, ctx: tx)),
+            (tx) => action(SiloDB(database, ctx: tx)),
           ));
     }
 
-    return action(DefaultDB(database, ctx: ctx));
+    return action(SiloDB(database, ctx: ctx));
   }
 
   @override

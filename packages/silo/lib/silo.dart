@@ -14,7 +14,7 @@ export 'src/drivers/interfaces/dialector.dart';
 export 'src/drivers/interfaces/migrator.dart';
 export 'src/drivers/impl/dialector.dart';
 export 'src/drivers/impl/migrator.dart';
-export 'src/drivers/impl/database.dart' show DefaultDB;
+export 'src/drivers/impl/database.dart' show SiloDB;
 
 export 'src/sql/expression/expression.dart' show ExprBuilder;
 
