@@ -2,7 +2,3 @@
 dependency_overrides:
   silo:
     path: ../silo
-  silo_sqflite:
-    path: ../silo_sqflite
-  silo_sqlite3:
-    path: ../silo_sqlite3
