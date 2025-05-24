@@ -183,6 +183,7 @@ final students = await db
           db.silo<Student>()..lt('age', 70),
         ),
     )
+    .eq('school.id', 'schoolID')
     .find()
     .values;
 ```

@@ -23,13 +23,16 @@ Future<void> main() async {
 
   // silo supports dart primitives
   // that are json serializable
-  
+
   // register custom types that implement
   SiloRegistry.registerFactory(Url.parse);
 
   // put with expiration tiome
   await db.silo<Url>().put("a url", Url(Uri(path: "/a/url")),
       expireAt: DateTime.now().add(Duration(hours: 2)));
+
+  // register SiloTable names and factories
+  SiloRegistry.registerNamedFactory("students", Student.fromJson);
 
   // dummy student model for auto migration
   final dummyStudent = Student(
@@ -45,11 +48,15 @@ Future<void> main() async {
   // (different from SiloValue)
   await db.migrator.autoMigrateSiloTable(dummyStudent);
 
-  // register SiloTable names and factories
-  SiloRegistry.registerNamedFactory("students", Student.fromJson);
-
   await db.silo<Student>().putSilo(
-        dummyStudent,
+        Student(
+          id: "id",
+          firstName: "Johnson",
+          lastName: "James",
+          age: 30,
+          school: School(id: "schoolID", name: "Loohcs"),
+          profile: Url(Uri()),
+        ),
       );
 
   final results = await db
@@ -64,9 +71,11 @@ Future<void> main() async {
             db.silo<Student>()..lt('age', 70),
           ),
       )
+      .eq('school.id', 'schoolID')
       .find()
       .values;
   print(results);
+
   // close
   await db.close();
 }
