@@ -1,5 +1,5 @@
 name: silo_common
-description: Common interfaces for silo orm
+description: A lightweight ORM-like library for Dart with key-value and SQL query support.
 version: 1.0.0
 repository: https://github.com/Eghosa-Osayande/silo
 issue_tracker: https://github.com/Eghosa-Osayande/silo/issues
