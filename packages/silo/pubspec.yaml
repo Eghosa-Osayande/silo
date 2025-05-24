@@ -18,7 +18,8 @@ environment:
   sdk: ^3.6.0
 
 dependencies:
-  sqlite3: ^2.7.5
+  sqlite_async:
+  sqlite3_flutter_libs:
 
 dev_dependencies:
   lints: ^5.0.0
