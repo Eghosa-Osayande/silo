@@ -367,6 +367,33 @@ mixin SiloQueryBuilder<T extends Silo<O>, O> {
     return _where("OR", silo);
   }
 
+  T _where(String logicOp, dynamic query, [List<dynamic>? args]) {
+    final isFirst = _conditions.isEmpty;
+    switch (query) {
+      case String query:
+        _conditions.add(
+          Expr(
+            '${isFirst ? '' : '$logicOp '} $query',
+            args ?? [],
+          ),
+        );
+        break;
+
+      case Silo query:
+        _conditions.add(
+          GroupCondition(
+            logicalOperator: logicOp,
+            conditions: query._conditions,
+            withParenthesis: query._conditions.length > 1,
+            isFirst: _conditions.isEmpty,
+          ),
+        );
+        break;
+      default:
+    }
+    return this as T;
+  }
+
   Expression _transformColumnFilter(String column) {
     final sep = ".";
 
@@ -394,33 +421,6 @@ mixin SiloQueryBuilder<T extends Silo<O>, O> {
     filter = r'$' + filter;
 
     return Expr("json_extract(?, ?)", [Quoted(col), filter]);
-  }
-
-  T _where(String logicOp, dynamic query, [List<dynamic>? args]) {
-    final isFirst = _conditions.isEmpty;
-    switch (query) {
-      case String query:
-        _conditions.add(
-          Expr(
-            '${isFirst ? '' : '$logicOp '} $query',
-            args ?? [],
-          ),
-        );
-        break;
-
-      case Silo query:
-        _conditions.add(
-          GroupCondition(
-            logicalOperator: logicOp,
-            conditions: query._conditions,
-            withParenthesis: query._conditions.length > 1,
-            isFirst: _conditions.isEmpty,
-          ),
-        );
-        break;
-      default:
-    }
-    return this as T;
   }
 
   Statement toStatement() {
