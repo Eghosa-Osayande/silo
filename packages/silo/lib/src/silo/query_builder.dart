@@ -82,7 +82,7 @@ mixin SiloQueryBuilder<T extends Silo<O>, O> {
   }) {
     _conditions.add(Eq(
       logicalOp: logicOp.name,
-      column: _transformDataColumn(column),
+      column: _transformColumnFilter(column),
       op: "=",
       value: value,
       isFirst: _conditions.isEmpty,
@@ -99,7 +99,7 @@ mixin SiloQueryBuilder<T extends Silo<O>, O> {
   }) {
     _conditions.add(Eq(
       logicalOp: logicOp.name,
-      column: _transformDataColumn(column),
+      column: _transformColumnFilter(column),
       op: "<>",
       value: value,
       isFirst: _conditions.isEmpty,
@@ -116,7 +116,7 @@ mixin SiloQueryBuilder<T extends Silo<O>, O> {
   }) {
     _conditions.add(Eq(
       logicalOp: logicOp.name,
-      column: _transformDataColumn(column),
+      column: _transformColumnFilter(column),
       op: ">",
       value: value,
       isFirst: _conditions.isEmpty,
@@ -133,7 +133,7 @@ mixin SiloQueryBuilder<T extends Silo<O>, O> {
   }) {
     _conditions.add(Eq(
       logicalOp: logicOp.name,
-      column: _transformDataColumn(column),
+      column: _transformColumnFilter(column),
       op: ">=",
       value: value,
       isFirst: _conditions.isEmpty,
@@ -150,7 +150,7 @@ mixin SiloQueryBuilder<T extends Silo<O>, O> {
   }) {
     _conditions.add(Eq(
       logicalOp: logicOp.name,
-      column: _transformDataColumn(column),
+      column: _transformColumnFilter(column),
       op: "<",
       value: value,
       isFirst: _conditions.isEmpty,
@@ -167,7 +167,7 @@ mixin SiloQueryBuilder<T extends Silo<O>, O> {
   }) {
     _conditions.add(Eq(
       logicalOp: logicOp.name,
-      column: _transformDataColumn(column),
+      column: _transformColumnFilter(column),
       op: "<=",
       value: value,
       isFirst: _conditions.isEmpty,
@@ -184,7 +184,7 @@ mixin SiloQueryBuilder<T extends Silo<O>, O> {
   }) {
     _conditions.add(Eq(
       logicalOp: logicOp.name,
-      column: _transformDataColumn(column),
+      column: _transformColumnFilter(column),
       op: "like",
       value: value,
       isFirst: _conditions.isEmpty,
@@ -201,7 +201,7 @@ mixin SiloQueryBuilder<T extends Silo<O>, O> {
   }) {
     _conditions.add(Eq(
       logicalOp: logicOp.name,
-      column: _transformDataColumn(column),
+      column: _transformColumnFilter(column),
       op: "ilike",
       value: value,
       isFirst: _conditions.isEmpty,
@@ -218,7 +218,7 @@ mixin SiloQueryBuilder<T extends Silo<O>, O> {
   }) {
     _conditions.add(Eq(
       logicalOp: logicOp.name,
-      column: _transformDataColumn(column),
+      column: _transformColumnFilter(column),
       op: "IS",
       value: value,
       isFirst: _conditions.isEmpty,
@@ -330,7 +330,7 @@ mixin SiloQueryBuilder<T extends Silo<O>, O> {
     _conditions.add(
       Eq(
         logicalOp: logicOp.name,
-        column: _transformDataColumn(column),
+        column: _transformColumnFilter(column),
         op: "IN",
         value: values,
         isFirst: _conditions.isEmpty,
@@ -349,7 +349,7 @@ mixin SiloQueryBuilder<T extends Silo<O>, O> {
     _conditions.add(
       Eq(
         logicalOp: logicOp.name,
-        column: _transformDataColumn(column),
+        column: _transformColumnFilter(column),
         op: "NOT IN",
         value: values,
         isFirst: _conditions.isEmpty,
@@ -367,36 +367,20 @@ mixin SiloQueryBuilder<T extends Silo<O>, O> {
     return _where("OR", silo);
   }
 
-  T raw(String query, [List<dynamic>? args]) {
-    String output = _transformColumns(query);
-
-    _where("AND", output, args);
-
-    return this as T;
-  }
-
-  Expression _transformDataColumn(String dataColumn) {
-    // if (<O>[] is List<SiloTable>) {
-    //   return Expr(dataColumn);
-    // }
-    String output = _transformColumns(dataColumn);
-    return Expr(output);
-  }
-
-  String _transformColumns(String query) {
+  Expression _transformColumnFilter(String column) {
     final sep = ".";
 
-    if (query.isEmpty) {
-      query = sep;
+    if (column.isEmpty) {
+      column = sep;
     }
 
-    final index = query.indexOf(sep);
+    final index = column.indexOf(sep);
     if (index == -1) {
-      return query;
+      return Expr(column);
     }
 
-    var col = query.substring(0, index);
-    var filter = query.substring(index);
+    var col = column.substring(0, index);
+    var filter = column.substring(index);
 
     if (col.isEmpty) {
       col = "value";
@@ -407,8 +391,9 @@ mixin SiloQueryBuilder<T extends Silo<O>, O> {
     }
 
     col = _silo.db.dialector.quote(col);
+    filter = r'$' + filter;
 
-    return "json_extract($col, '\$$filter')";
+    return Expr("json_extract(?, ?)", [Quoted(col), filter]);
   }
 
   T _where(String logicOp, dynamic query, [List<dynamic>? args]) {
