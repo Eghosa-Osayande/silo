@@ -1,6 +1,6 @@
 name: silo
 description: A lightweight ORM-like library for Dart built on SQLite with key-value and SQL query support.
-version: 1.0.1
+version: 1.0.2
 repository: https://github.com/Eghosa-Osayande/silo
 issue_tracker: https://github.com/Eghosa-Osayande/silo/issues
 homepage: https://github.com/Eghosa-Osayande/silo
@@ -18,7 +18,6 @@ environment:
 
 dependencies:
   sqlite_async: ^0.11.5
-  sqlite3_flutter_libs: ^0.5.30
   silo_common: ^1.0.0
 
 dev_dependencies:

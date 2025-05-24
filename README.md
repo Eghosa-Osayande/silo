@@ -1,18 +1,19 @@
-# Silo ORM
+# Silo
 
 **Silo** is an ORM-like library for Dart that blends key-value convenience with SQL-backed querying. Built on `async_sqlite` and `sqlite`, it provides a clean, extensible API through `silo_common`, with future support for more backends like `sqflite`.
 
 ---
 
 ## Installation
+Add to pubspec.yaml. For flutter applications, add `sqlite3_flutter_libs` to include the native SQLite library.
 
 ```sh
-dart pub add silo
+
+dependencies:
+  silo: ^1.0.2
+  sqlite3_flutter_libs: ^0.5.30 # For flutter applications
+
 ```
-
-Silo includes `sqlite3_flutter_libs` to ensure SQLite compatibility across platforms.
-
----
 
 ## 1. Open the Database
 
@@ -21,8 +22,6 @@ Start by opening or creating your database:
 ```dart
 final db = await SiloDB.fromPath("z.db");
 ```
-
----
 
 ## 2. Key-Value Storage
 
@@ -53,8 +52,6 @@ await db.silo<Url>().put(
 );
 ```
 
----
-
 ## 3. Custom Types & Factory Registration
 
 To store custom types like `Uri`, implement `SiloValue`:
@@ -76,8 +73,6 @@ Register them globally before use:
 ```dart
 SiloRegistry.registerFactory(Url.parse);
 ```
-
----
 
 ## 4. Silo Tables & Migration
 
@@ -146,8 +141,6 @@ Register factory with table name:
 SiloRegistry.registerNamedFactory("students", Student.fromJson);
 ```
 
----
-
 ## 5. Insert & Query Structured Data
 
 Insert model instances:
@@ -188,8 +181,6 @@ final students = await db
     .values;
 ```
 
----
-
 ## Cleanup
 
 Always close the database when done:
@@ -198,10 +189,7 @@ Always close the database when done:
 await db.close();
 ```
 
----
-
 ## License
 
 MIT
 
----
