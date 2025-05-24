@@ -1,9 +1,13 @@
 import 'dart:async';
 
-import 'package:silo/silo.dart';
+import 'package:silo/src/drivers/interfaces/database.dart';
+import 'package:silo/src/drivers/interfaces/dialector.dart';
+import 'package:silo/src/drivers/interfaces/migrator.dart';
 import 'package:sqlite_async/sqlite_async.dart';
 
-Future<DB> openDB(String path) => DefaultDB.open(path);
+import 'dialector.dart';
+import 'migrator.dart';
+
 
 class DefaultDB extends DB {
   final SqliteDatabase database;
@@ -20,12 +24,18 @@ class DefaultDB extends DB {
     this.ctx,
   });
 
-  static Future<DefaultDB> open(
+  static Future<DefaultDB> fromPath(
     String path,
   ) async {
     final database = SqliteDatabase(path: path);
     await _run(() => database.initialize());
+    return DefaultDB(database);
+  }
 
+  static Future<DefaultDB> fromDatabase(
+    SqliteDatabase database,
+  ) async {
+    await _run(() => database.initialize());
     return DefaultDB(database);
   }
 
