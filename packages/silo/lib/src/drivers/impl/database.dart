@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:silo/silo.dart';
 import 'package:sqlite_async/sqlite_async.dart';
 
@@ -21,17 +23,26 @@ class DefaultDB extends DB {
   static Future<DefaultDB> open(
     String path,
   ) async {
-    
     final database = SqliteDatabase(path: path);
-    await database.initialize();
+    await _run(() => database.initialize());
+
     return DefaultDB(database);
   }
 
   SqliteWriteContext get db => ctx ?? database;
 
+  static FutureOr<T> _run<T>(FutureOr<T> Function() body) async {
+    try {
+      return await body();
+    } catch (e) {
+      // ignore: use_rethrow_when_possible
+      throw e;
+    }
+  }
+
   @override
   Future<void> exec(String sql, [List<Object?> arguments = const []]) async {
-    await db.execute(sql, arguments);
+    await _run(() => db.execute(sql, arguments));
   }
 
   @override
@@ -39,7 +50,7 @@ class DefaultDB extends DB {
     String sql, [
     List<Object?> arguments = const [],
   ]) async {
-    final resultSet = await db.getAll(sql, arguments);
+    final resultSet = await _run(() => db.getAll(sql, arguments));
 
     final result = <Map<String, Object?>>[];
     for (final row in resultSet) {
@@ -53,9 +64,9 @@ class DefaultDB extends DB {
     Future<T> Function(DB) action,
   ) async {
     if (ctx == null) {
-      return database.writeTransaction(
-        (tx) => action(DefaultDB(database, ctx: tx)),
-      );
+      return _run(() => database.writeTransaction(
+            (tx) => action(DefaultDB(database, ctx: tx)),
+          ));
     }
 
     return action(DefaultDB(database, ctx: ctx));
@@ -64,6 +75,6 @@ class DefaultDB extends DB {
   @override
   Future<void> close() async {
     if (ctx != null) return;
-    await database.close();
+    await _run(() => database.close());
   }
 }
