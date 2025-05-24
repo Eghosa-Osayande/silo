@@ -1,1 +1,0 @@
-# Silo Sqlite3

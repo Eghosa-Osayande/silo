@@ -1,4 +1,0 @@
-
-dependency_overrides:
-  silo:
-    path: ../silo
