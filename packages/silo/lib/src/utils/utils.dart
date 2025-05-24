@@ -1,46 +1,6 @@
 import 'dart:convert';
 
-import '../silo/models.dart';
-
-String escapeChars(String v) => "'${v.replaceAll('\'', '\'\'')}'";
-
-String encodeDateTimeForSqlite(DateTime dt) {
-  return encodeDateTime(dt);
-}
-
-DateTime parseDateTimeFromSqlite(String input) {
-  return DateTime.parse(input);
-}
-
-String encodeDateTime(DateTime dartValue) {
-  if (dartValue.isUtc) {
-    return dartValue.toIso8601String();
-  } else {
-    final offset = dartValue.timeZoneOffset;
-    // Quick sanity check: We can only store the UTC offset as `hh:mm`,
-    // so if the offset has seconds for some reason we should refuse to
-    // store that.
-    if (offset.inSeconds - 60 * offset.inMinutes != 0) {
-      throw ArgumentError.value(
-        dartValue,
-        'dartValue',
-        'Cannot be mapped to SQL: Invalid UTC offset $offset',
-      );
-    }
-
-    final hours = offset.inHours.abs();
-    final minutes = offset.inMinutes.abs() - 60 * hours;
-
-    // For local date times, add the offset as ` +hh:mm` in the end. This
-    // format is understood by `DateTime.parse` and date time functions in
-    // sqlite.
-    final prefix = offset.isNegative ? ' -' : ' +';
-    final formattedOffset = '${hours.toString().padLeft(2, '0')}:'
-        '${minutes.toString().padLeft(2, '0')}';
-
-    return '${dartValue.toIso8601String()}$prefix$formattedOffset';
-  }
-}
+import 'package:silo/src/silo/models.dart';
 
 extension StringX on String {
   String trimSuffix(String suffix) {
